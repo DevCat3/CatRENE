@@ -181,3 +181,25 @@ brene_kernel_umount() {
 	${KSU_BIN} kernel notify-module-mounted
 	${KSU_BIN} kernel umount add -f 2 "$1" 2> /dev/null
 }
+brene_sus_kstat() {
+	# brene_sus_kstat <path> <ino> <dev> <nlink> <size> <atime> <atime_nsec> <mtime> <mtime_nsec> <ctime> <ctime_nsec> <blocks> <blksize>
+	# Use 'default' for any field except path
+	local path="$1"
+	if [[ -z "${path}" || $# -ne 13 ]]; then
+		return 1
+	fi
+	if ${SUSFS_BIN} add_sus_kstat_statically "$@" && [[ "${config_brene_logs}" == "1" ]]; then
+		echo "[sus_kstat]: $*" >> "${PERSISTENT_DIR}/logs.txt"
+	fi
+}
+brene_try_umount() {
+	# <path> [mode]  (mode: 0=no flags, 1=MNT_DETACH, default 1)
+	local path="$1"
+	local mode="${2:-1}"
+	if [[ -z "${path}" ]]; then
+		return 1
+	fi
+	if ${SUSFS_BIN} add_try_umount "${path}" "${mode}" && [[ "${config_brene_logs}" == "1" ]]; then
+		echo "[try_umount]: ${path} ${mode}" >> "${PERSISTENT_DIR}/logs.txt"
+	fi
+}

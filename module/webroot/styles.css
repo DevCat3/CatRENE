@@ -324,3 +324,133 @@ md-tabs {
 	position: relative;
 	top: -1px;
 }
+
+/* ---- Background (stars + floating crewmates) ---- */
+:root {
+	color-scheme: dark;
+	--md-sys-color-background: #000000;
+	--md-sys-color-surface: #000000;
+	--md-sys-color-on-surface: #ffffff;
+	--md-sys-color-on-background: #ffffff;
+	--md-sys-color-on-surface-variant: #e0e0e0;
+	--md-sys-color-outline: #b5b5b5;
+	--md-sys-color-surface-container: rgba(207, 250, 254, 0.14);
+	--md-sys-color-surface-container-low: rgba(207, 250, 254, 0.14);
+	--md-sys-color-surface-container-high: rgba(207, 250, 254, 0.2);
+	--md-sys-color-surface-container-highest: rgba(207, 250, 254, 0.2);
+	--md-sys-color-surface-container-lowest: rgba(0, 0, 0, 0.35);
+}
+
+html {
+	background-color: #000;
+}
+
+body {
+	background-color: #000;
+	color: #fff;
+}
+
+#backgroundCanvas {
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 0;
+	pointer-events: none;
+	background-color: #000;
+}
+
+.app-header,
+.tab-bar,
+.tab-panel {
+	position: relative;
+	z-index: 1;
+}
+
+.app-header,
+.tab-bar {
+	background-color: transparent;
+}
+
+.enabled-config {
+	background-color: rgba(0, 0, 0, 0.35);
+}
+
+md-tabs {
+	--md-sys-color-surface: transparent;
+}
+
+.snap-container {
+	overflow-x: hidden;
+}
+
+.kstat-form {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+	min-width: min(420px, 80vw);
+}
+
+.kstat-form md-filled-text-field {
+	width: 100%;
+	min-width: 0;
+}
+
+.kstat-form .kstat-full {
+	grid-column: 1 / -1;
+}
+
+.kstat-actions {
+	display: flex;
+	flex-shrink: 0;
+	gap: 2px;
+}
+
+@media (prefers-color-scheme: light) {
+	:root {
+		--md-sys-color-primary: #d0bcff;
+		--md-sys-color-on-primary: #381e72;
+		--md-sys-color-primary-container: #4f378b;
+		--md-sys-color-on-primary-container: #eaddff;
+		--md-sys-color-secondary-container: #4a4458;
+		--md-sys-color-on-secondary-container: #e8def8;
+		--md-sys-color-surface-variant: #49454f;
+	}
+}
+
+md-dialog {
+	--md-dialog-container-color: #14181a;
+	--md-dialog-headline-color: #ffffff;
+	--md-dialog-supporting-text-color: #e0e0e0;
+}
+
+/* ---- No focus / tap borders ---- */
+* {
+	-webkit-tap-highlight-color: transparent;
+}
+
+:focus,
+:focus-visible,
+button:focus,
+button:focus-visible,
+md-switch:focus-visible,
+md-filled-button:focus-visible,
+md-text-button:focus-visible,
+md-primary-tab:focus-visible {
+	outline: none !important;
+}
+
+md-focus-ring {
+	display: none !important;
+}
+
+md-filled-button,
+md-text-button,
+md-switch,
+md-primary-tab,
+md-dialog {
+	--md-focus-ring-color: transparent;
+	--md-focus-ring-width: 0px;
+	--md-focus-ring-outward-offset: 0px;
+	--md-focus-ring-inward-offset: 0px;
+}

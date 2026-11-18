@@ -349,6 +349,26 @@ if [[ -e "${PERSISTENT_DIR}/custom_kernel_umount.txt" ]]; then
 	done < "${PERSISTENT_DIR}/custom_kernel_umount.txt"
 fi
 
+# Load custom_sus_kstat.txt (tab separated: path ino dev nlink size atime atime_nsec mtime mtime_nsec ctime ctime_nsec blocks blksize)
+if [[ -e "${PERSISTENT_DIR}/custom_sus_kstat.txt" ]]; then
+	while IFS='	' read -r path ino dev nlink size atime atime_nsec mtime mtime_nsec ctime ctime_nsec blocks blksize; do
+		# Skip empty lines or comments
+		[[ -z "${path}" || "${path}" == "#"* ]] && continue
+
+		brene_sus_kstat "${path}" "${ino:-default}" "${dev:-default}" "${nlink:-default}" "${size:-default}" "${atime:-default}" "${atime_nsec:-default}" "${mtime:-default}" "${mtime_nsec:-default}" "${ctime:-default}" "${ctime_nsec:-default}" "${blocks:-default}" "${blksize:-default}"
+	done < "${PERSISTENT_DIR}/custom_sus_kstat.txt"
+fi
+
+# Load custom_try_umount.txt
+if [[ -e "${PERSISTENT_DIR}/custom_try_umount.txt" ]]; then
+	while read -r path mode; do
+		# Skip empty lines or comments
+		[[ -z "${path}" || "${path}" == "#"* ]] && continue
+
+		brene_try_umount "${path}" "${mode}"
+	done < "${PERSISTENT_DIR}/custom_try_umount.txt"
+fi
+
 # Load custom_open_redirect.txt
 if [[ -e "${PERSISTENT_DIR}/custom_open_redirect.txt" ]]; then
 	while read -r path new_path uid_scheme; do

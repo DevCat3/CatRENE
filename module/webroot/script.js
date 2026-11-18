@@ -489,6 +489,7 @@ exec(`cat ${PERSISTENT_DIR}/config.sh`).then((result) => {
 	const loopField = document.getElementById('custom_sus_path_loop_text_field')
 	const openRedirectField = document.getElementById('custom_open_redirect_text_field')
 	const sus_path_uid_filter_field = document.getElementById('custom_sus_path_uid_filter_field')
+	const tryUmountField = document.getElementById('custom_try_umount_text_field')
 	const applyButton = document.getElementById('unified_apply_button')
 	const tabs = document.getElementById('sus_tabs')
 	const scrollContainer = document.getElementById('horizontal_scroll_container')
@@ -508,6 +509,9 @@ exec(`cat ${PERSISTENT_DIR}/config.sh`).then((result) => {
 	})
 	exec(`cat ${PERSISTENT_DIR}/custom_sus_path_uid_filter.txt`).then((result) => {
 		sus_path_uid_filter_field.value = result.errno === 0 ? `${result.stdout}` : ''
+	})
+	exec(`cat ${PERSISTENT_DIR}/custom_try_umount.txt`).then((result) => {
+		tryUmountField.value = result.errno === 0 ? `${result.stdout}` : ''
 	})
 
 	// Tabs and Scroll Sync
@@ -557,6 +561,10 @@ exec(`cat ${PERSISTENT_DIR}/config.sh`).then((result) => {
 			case 4:
 				file = 'custom_sus_path_uid_filter.txt'
 				content = sus_path_uid_filter_field.value
+				break
+			case 5:
+				file = 'custom_try_umount.txt'
+				content = tryUmountField.value
 				break
 		}
 
@@ -651,75 +659,200 @@ UNIQUE_EOF
 	} catch (e) {}
 })()
 
-// Swipe
+
+// Custom SUS_KSTAT
 ;(async () => {
-	const tabBar = document.getElementById('tab-bar')
-	const bodyContent = document
-	const buttons = Array.from(tabBar.querySelectorAll('button.tab-btn'))
-	const SWIPE_THRESHOLD = 10
-	let currentIndex = buttons.findIndex((btn) => btn.classList.contains('active')) || 0
-	let touchStartX = 0
-	let touchStartY = 0
+	const FILE = `${PERSISTENT_DIR}/custom_sus_kstat.txt`
+	const KEYS = ['path', 'ino', 'dev', 'nlink', 'size', 'atime', 'atime_nsec', 'mtime', 'mtime_nsec', 'ctime', 'ctime_nsec', 'blocks', 'blksize']
+	const list = document.getElementById('kstat_entries_list')
+	const dialog = document.getElementById('kstat_dialog')
+	const title = document.getElementById('kstat_dialog_title')
+	const deleteDialog = document.getElementById('kstat_delete_dialog')
+	const deleteMessage = document.getElementById('kstat_delete_message')
+	const inputs = Object.fromEntries(KEYS.map((k) => [k, document.getElementById(`kstat_${k}_input`)]))
+	let entries = []
+	let editIndex = null
+	let deleteIndex = null
 
-	const updateUI = (index) => {
-		buttons[index].click()
+	const clean = (v) => String(v ?? '').replace(/[\t\r\n]+/g, ' ').trim()
 
-		buttons[index].scrollIntoView({
-			behavior: 'auto',
-			block: 'nearest',
-			inline: 'center',
+	const save = async () => {
+		const content = entries.map((e) => KEYS.map((k) => e[k] || 'default').join('\t')).join('\n')
+		const result = await exec(`
+cat <<'UNIQUE_EOF' > ${FILE}
+${content}
+UNIQUE_EOF
+		`)
+		if (result.errno !== 0) toast(result.stderr)
+		return result.errno === 0
+	}
+
+	const render = () => {
+		list.innerHTML = ''
+		entries.forEach((entry, index) => {
+			const row = document.createElement('div')
+			row.className = 'card-row'
+
+			const body = document.createElement('div')
+			body.className = 'card-row__body'
+			const t = document.createElement('span')
+			t.className = 'card-row__title'
+			t.textContent = entry.path
+			t.style.wordBreak = 'break-all'
+			const sub = document.createElement('span')
+			sub.className = 'card-row__sub card-row__tag--code'
+			sub.textContent = `ino: ${entry.ino} | dev: ${entry.dev} | size: ${entry.size}`
+			body.append(t, sub)
+
+			const actions = document.createElement('div')
+			actions.className = 'kstat-actions'
+			const edit = document.createElement('md-text-button')
+			edit.textContent = 'Edit'
+			edit.onclick = () => openDialog(index)
+			const del = document.createElement('md-text-button')
+			del.textContent = 'Delete'
+			del.onclick = () => {
+				deleteIndex = index
+				deleteMessage.textContent = `Delete ${entry.path}?`
+				deleteDialog.show()
+			}
+			actions.append(edit, del)
+
+			row.append(body, actions)
+			list.append(row)
 		})
 	}
 
-	const changeTab = (index) => {
-		if (index >= 0 && index < buttons.length) {
-			currentIndex = index
-			updateUI(index)
-		}
+	const openDialog = (index = null) => {
+		editIndex = index
+		title.textContent = index === null ? 'Add SUS_KSTAT entry' : 'Edit SUS_KSTAT entry'
+		KEYS.forEach((k) => {
+			const v = index === null ? '' : entries[index][k]
+			inputs[k].value = k !== 'path' && v === 'default' ? '' : (v ?? '')
+		})
+		dialog.show()
 	}
 
-	bodyContent.addEventListener(
-		'touchstart',
-		(e) => {
-			if (e.target.tagName === 'MD-PRIMARY-TAB') return
-
-			touchStartX = e.touches[0].clientX
-			touchStartY = e.touches[0].clientY
-		},
-		{ passive: true },
-	)
-
-	bodyContent.addEventListener(
-		'touchend',
-		(e) => {
-			if (e.target.tagName === 'MD-PRIMARY-TAB') return
-
-			if (e.target.closest('.tab-bar') === null) {
-				const touchEndX = e.changedTouches[0].clientX
-				const touchEndY = e.changedTouches[0].clientY
-
-				const diffX = touchStartX - touchEndX
-				const diffY = touchStartY - touchEndY
-
-				const isHorizontalSwipe = Math.abs(diffX) > SWIPE_THRESHOLD
-				const isDominantX = Math.abs(diffX) > Math.abs(diffY) * 3
-
-				if (isHorizontalSwipe && isDominantX) {
-					if (diffX > 0) {
-						changeTab(currentIndex + 1)
-					} else {
-						changeTab(currentIndex - 1)
-					}
-				}
-			}
-		},
-		{ passive: true },
-	)
-
-	tabBar.addEventListener('click', (e) => {
-		const btn = e.target.closest('.tab-btn')
-		if (btn) {
-			currentIndex = buttons.indexOf(btn)
+	document.getElementById('add_kstat_entry').onclick = () => openDialog()
+	document.getElementById('kstat_cancel_button').onclick = () => dialog.close()
+	document.getElementById('kstat_save_button').onclick = async () => {
+		const entry = {}
+		KEYS.forEach((k) => {
+			const v = clean(inputs[k].value)
+			entry[k] = k === 'path' ? v : v || 'default'
+		})
+		if (!entry.path) {
+			toast('Path is required!')
+			return
 		}
-	})
+		entry.path = entry.path.replaceAll('/sdcard', '/storage/emulated/0')
+		if (editIndex === null) entries.push(entry)
+		else entries[editIndex] = entry
+		if (await save()) {
+			toast('Success, reboot to apply')
+			render()
+			dialog.close()
+		}
+	}
+	document.getElementById('kstat_delete_cancel').onclick = () => deleteDialog.close()
+	document.getElementById('kstat_delete_confirm').onclick = async () => {
+		if (deleteIndex !== null) {
+			entries.splice(deleteIndex, 1)
+			deleteIndex = null
+			if (await save()) toast('Entry deleted')
+			render()
+		}
+		deleteDialog.close()
+	}
+
+	const result = await exec(`cat ${FILE}`)
+	if (result.errno === 0) {
+		entries = result.stdout
+			.split('\n')
+			.filter((l) => l.trim() && !l.startsWith('#'))
+			.map((l) => {
+				const parts = l.split('\t')
+				return Object.fromEntries(KEYS.map((k, i) => [k, (parts[i] || (k === 'path' ? '' : 'default')).trim()]))
+			})
+			.filter((e) => e.path)
+	}
+	render()
+})()
+
+// Background (stars + floating crewmates)
+;(() => {
+	const canvas = document.getElementById('backgroundCanvas')
+	if (!canvas) return
+	const ctx = canvas.getContext('2d')
+	const sprites = ['red', 'blue', 'cyan1', 'yellow', 'brown1', 'yellow1', 'orange', 'pink', 'green', 'black', 'orange1', 'cyan', 'lime', 'white', 'purple', 'brown']
+	const stars = []
+	const crew = []
+
+	const resize = () => {
+		canvas.width = window.innerWidth
+		canvas.height = window.innerHeight
+		initStars()
+		initCrew()
+	}
+	const initStars = () => {
+		stars.length = 0
+		for (let i = 0; i < 100; i++) {
+			stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, radius: Math.random() * 2, speed: Math.random() * 0.5 })
+		}
+	}
+	const initCrew = () => {
+		crew.length = 0
+		;[...sprites]
+			.sort(() => 0.5 - Math.random())
+			.slice(0, 6)
+			.forEach((name) => {
+				const img = new Image()
+				img.src = `./assets/${name}.png`
+				img.onload = () => {
+					crew.push({
+						img,
+						x: Math.random() * canvas.width,
+						y: Math.random() * canvas.height,
+						width: 50,
+						height: 60,
+						rotation: Math.random() * Math.PI * 2,
+						rotationSpeed: (Math.random() - 0.5) * 0.02,
+						speedX: (Math.random() - 0.5) * 1.5,
+						speedY: (Math.random() - 0.5) * 1.5,
+					})
+				}
+			})
+	}
+	const draw = () => {
+		ctx.clearRect(0, 0, canvas.width, canvas.height)
+		ctx.fillStyle = 'white'
+		stars.forEach((s) => {
+			ctx.beginPath()
+			ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2)
+			ctx.fill()
+			s.y += s.speed
+			if (s.y > canvas.height) {
+				s.y = 0
+				s.x = Math.random() * canvas.width
+			}
+		})
+		crew.forEach((c) => {
+			ctx.save()
+			ctx.translate(c.x + c.width / 2, c.y + c.height / 2)
+			ctx.rotate(c.rotation)
+			ctx.drawImage(c.img, -c.width / 2, -c.height / 2, c.width, c.height)
+			ctx.restore()
+			c.x += c.speedX
+			c.y += c.speedY
+			c.rotation += c.rotationSpeed
+			if (c.x > canvas.width) c.x = -c.width
+			if (c.x + c.width < 0) c.x = canvas.width
+			if (c.y > canvas.height) c.y = -c.height
+			if (c.y + c.height < 0) c.y = canvas.height
+		})
+		requestAnimationFrame(draw)
+	}
+	window.addEventListener('resize', resize)
+	resize()
+	draw()
 })()

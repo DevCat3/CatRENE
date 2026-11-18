@@ -3,16 +3,17 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>BRENE</title>
+		<title>CatRENE</title>
 		<link rel="stylesheet" href="./styles.css" type="text/css" />
 	</head>
 
 	<body class="body-content">
+		<canvas id="backgroundCanvas"></canvas>
 		<header class="app-header">
 			<div class="header-inner">
 				<div class="title">
 					<div class="group">
-						<a href="https://github.com/rrr333nnn333/BRENE">BRENE</a>
+						<a href="https://github.com/DevCat3/CatRENE">CatRENE</a>
 						<span class="item-version" id="brene-version"> v0.0.00 </span>
 					</div>
 
@@ -789,6 +790,18 @@
 							<span class="card-row__tag--code">Example:</span>
 							<span class="card-row__tag--code">com.brave.browser</span>
 							<!-- SUS_PATH_UID_FILTER -->
+
+
+							<!-- TRY_UMOUNT -->
+							<span class="card-row__title">TRY_UMOUNT</span>
+							<span class="card-row__sub">Add a mount point to the kernel umount list, it will be umounted for non-su app processes</span>
+							<span class="card-row__sub">Format: &lt;path&gt; &lt;mode&gt;</span>
+							<span class="card-row__sub">0: no flags</span>
+							<span class="card-row__sub">1: MNT_DETACH (default when mode is omitted)</span>
+							<span class="card-row__tag--code">Example:</span>
+							<span class="card-row__tag--code">/system/etc/hosts 1</span>
+							<span class="card-row__tag--code">/data/adb/modules/my_module/system/fonts 0</span>
+							<!-- TRY_UMOUNT -->
 						</div>
 						<md-ripple></md-ripple>
 					</div>
@@ -799,6 +812,7 @@
 							<md-primary-tab id="tab_sus_path_loop" aria-controls="panel_sus_path_loop">PATH LOOP</md-primary-tab>
 							<md-primary-tab id="tab_open_redirect" aria-controls="panel_open_redirect">OPEN_REDIRECT</md-primary-tab>
 							<md-primary-tab id="tab_sus_path_uid_filter" aria-controls="panel_sus_path_uid_filter">SUS_PATH_UID_FILTER</md-primary-tab>
+							<md-primary-tab id="tab_try_umount" aria-controls="panel_try_umount">TRY_UMOUNT</md-primary-tab>
 						</md-tabs>
 
 						<div class="snap-container" id="horizontal_scroll_container">
@@ -821,12 +835,61 @@
 							<div class="snap-item">
 								<md-filled-text-field class="content" id="custom_sus_path_uid_filter_field" type="textarea" rows="12" label="SUS_PATH_UID_FILTER"></md-filled-text-field>
 							</div>
+
+							<div class="snap-item">
+								<md-filled-text-field class="content" id="custom_try_umount_text_field" type="textarea" rows="12" label="TRY_UMOUNT"></md-filled-text-field>
+							</div>
 						</div>
 
 						<div class="sus-footer">
 							<md-filled-button id="unified_apply_button">APPLY</md-filled-button>
 						</div>
 					</div>
+
+				<p class="section-label">SUS_KSTAT</p>
+				<div class="card-group">
+					<div class="card-row">
+						<div class="card-row__body">
+							<span class="card-row__title">Custom SUS_KSTAT</span>
+							<span class="card-row__sub">Spoof the stat result (ino, dev, nlink, size, times, blocks...) of a file or directory for umounted app processes</span>
+							<span class="card-row__sub">Leave a field empty to use 'default' (real value)</span>
+							<span class="card-row__sub">Run 'stat &lt;path&gt;' to get the real values</span>
+						</div>
+						<md-filled-button id="add_kstat_entry">Add</md-filled-button>
+					</div>
+					<div id="kstat_entries_list"></div>
+				</div>
+
+				<md-dialog id="kstat_dialog">
+					<div slot="headline" id="kstat_dialog_title">Add SUS_KSTAT entry</div>
+					<form slot="content" id="kstat_form" method="dialog" class="kstat-form">
+						<md-filled-text-field id="kstat_path_input" label="Path" placeholder="/system/..." class="kstat-full"></md-filled-text-field>
+						<md-filled-text-field id="kstat_ino_input" label="inode" placeholder="default"></md-filled-text-field>
+						<md-filled-text-field id="kstat_dev_input" label="dev" placeholder="default"></md-filled-text-field>
+						<md-filled-text-field id="kstat_nlink_input" label="nlink" placeholder="default"></md-filled-text-field>
+						<md-filled-text-field id="kstat_size_input" label="size" placeholder="default"></md-filled-text-field>
+						<md-filled-text-field id="kstat_atime_input" label="atime" placeholder="default"></md-filled-text-field>
+						<md-filled-text-field id="kstat_atime_nsec_input" label="atime_nsec" placeholder="default"></md-filled-text-field>
+						<md-filled-text-field id="kstat_mtime_input" label="mtime" placeholder="default"></md-filled-text-field>
+						<md-filled-text-field id="kstat_mtime_nsec_input" label="mtime_nsec" placeholder="default"></md-filled-text-field>
+						<md-filled-text-field id="kstat_ctime_input" label="ctime" placeholder="default"></md-filled-text-field>
+						<md-filled-text-field id="kstat_ctime_nsec_input" label="ctime_nsec" placeholder="default"></md-filled-text-field>
+						<md-filled-text-field id="kstat_blocks_input" label="blocks" placeholder="default"></md-filled-text-field>
+						<md-filled-text-field id="kstat_blksize_input" label="blksize" placeholder="default"></md-filled-text-field>
+					</form>
+					<div slot="actions">
+						<md-text-button id="kstat_cancel_button">Cancel</md-text-button>
+						<md-text-button id="kstat_save_button">Save</md-text-button>
+					</div>
+				</md-dialog>
+				<md-dialog id="kstat_delete_dialog">
+					<div slot="headline">Delete entry</div>
+					<form slot="content" method="dialog" id="kstat_delete_message">Delete?</form>
+					<div slot="actions">
+						<md-text-button id="kstat_delete_cancel">No</md-text-button>
+						<md-text-button id="kstat_delete_confirm">Yes</md-text-button>
+					</div>
+				</md-dialog>
 				</div>
 			</section>
 
