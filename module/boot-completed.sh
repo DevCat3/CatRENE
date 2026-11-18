@@ -351,7 +351,7 @@ fi
 
 # Load custom_sus_kstat.txt (tab separated: path ino dev nlink size atime atime_nsec mtime mtime_nsec ctime ctime_nsec blocks blksize)
 if [[ -e "${PERSISTENT_DIR}/custom_sus_kstat.txt" ]]; then
-	while IFS='	' read -r path ino dev nlink size atime atime_nsec mtime mtime_nsec ctime ctime_nsec blocks blksize; do
+	while IFS=$'\t' read -r path ino dev nlink size atime atime_nsec mtime mtime_nsec ctime ctime_nsec blocks blksize; do
 		# Skip empty lines or comments
 		[[ -z "${path}" || "${path}" == "#"* ]] && continue
 
